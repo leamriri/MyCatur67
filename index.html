@@ -361,6 +361,7 @@ function doRegister() {
       errDiv.innerText = "Gagal daftar: " + error.message;
     });
 }
+
 function switchTab(tab) {
   const tabLogin = document.getElementById('tab-login');
   const tabReg = document.getElementById('tab-reg');
@@ -384,7 +385,6 @@ function switchTab(tab) {
 window.addEventListener('DOMContentLoaded', () => {
   initFirebase();
 });
-
 // ============================================ ELO & RANK ============================================
 
 // ═══════════════════════════════════════ ELO & RANK ════════════════════
