@@ -361,7 +361,24 @@ function doRegister() {
       errDiv.innerText = "Gagal daftar: " + error.message;
     });
 }
-// Menjalankan fungsi di atas secara otomatis saat web pertama kali d...
+function switchTab(tab) {
+  const tabLogin = document.getElementById('tab-login');
+  const tabReg = document.getElementById('tab-reg');
+  const authLogin = document.getElementById('auth-login');
+  const authReg = document.getElementById('auth-reg');
+
+  if (tab === 'login') {
+    tabLogin.classList.add('active');
+    tabReg.classList.remove('active');
+    authLogin.style.display = 'block';
+    authReg.style.display = 'none';
+  } else {
+    tabReg.classList.add('active');
+    tabLogin.classList.remove('active');
+    authLogin.style.display = 'none';
+    authReg.style.display = 'block';
+  }
+}// Menjalankan fungsi di atas secara otomatis saat web pertama kali d...
 window.addEventListener('DOMContentLoaded', () => {
   initFirebase();
 });
