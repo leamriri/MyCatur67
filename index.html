@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>♟ Chess Online</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:linear-gradient(135deg,#1a0a00,#2d1200,#1a0a00);
+  min-height:100vh;font-family:Georgia,serif;color:#d4a44c;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;
+}
+h1{font-size:28px;letter-spacing:4px;text-shadow:0 0 20px #d4a44c88;margin-bottom:4px;}
+.sub{color:#7a5010;font-size:11px;letter-spacing:3px;margin-bottom:18px;}
+.screen{display:none;flex-direction:column;align-items:center;width:100%;max-width:500px;}
+.screen.active{display:flex;}
+.btn{
+  background:transparent;border:2px solid #d4a44c;color:#d4a44c;
+  padding:9px 24px;border-radius:6px;cursor:pointer;
+  font-family:Georgia,serif;font-size:13px;letter-spacing:2px;
+  text-transform:uppercase;transition:all 0.2s;margin:4px;
+}
+.btn:hover{background:#d4a44c22;}
+.btn.solid{background:#d4a44c;color:#1a0a00;font-weight:bold;}
+.btn.solid:hover{background:#e8b860;}
+.btn.sm{padding:6px 14px;font-size:11px;}
+.btn.danger{border-color:#cc4444;color:#cc4444;}
+.btn.danger:hover{background:#cc444422;}
+input.inp{
+  width:100%;background:#1f0e00;border:2px solid #5a3200;color:#d4a44c;
+  padding:10px 14px;border-radius:6px;font-size:14px;font-family:Georgia;margin:5px 0;
+}
+input.inp:focus{outline:none;border-color:#d4a44c;}
+textarea.cfg{
+  width:100%;height:150px;background:#110500;border:2px solid #5a3200;
+  color:#d4a44c;padding:12px;border-radius:8px;font-family:monospace;font-size:11px;resize:none;margin:8px 0;
+}
+textarea.cfg:focus{outline:none;border-color:#d4a44c;}
+.err{color:#ff6666;font-size:12px;margin:4px;text-align:center;min-height:16px;}
+.suc{color:#66ff88;font-size:12px;margin:4px;text-align:center;min-height:16px;}
+.info-box{
+  background:#150800;border:1px solid #3a1800;border-radius:8px;
+  padding:12px;width:100%;font-size:12px;color:#7a5010;line-height:1.9;margin:8px 0;
+}
+.info-box b{color:#d4a44c;} .info-box code{background:#2d1200;padding:1px 5px;border-radius:3px;color:#e8b860;font-size:11px;}
+.divider{color:#4a2800;margin:8px 0;font-size:13px;}
+.spinner{width:32px;height:32px;border:3px solid #3a1800;border-top-color:#d4a44c;border-radius:50%;animation:spin .9s linear infinite;margin:12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.room-code-box{
+  background:#1f0e00;border:2px solid #d4a44c;border-radius:10px;
+  padding:12px 36px;font-size:34px;letter-spacing:10px;font-weight:bold;
+  margin:10px 0;text-shadow:0 0 10px #d4a44c55;
+}
+input.code-inp{
+  background:#1f0e00;border:2px solid #5a3200;color:#d4a44c;
+  padding:10px 16px;border-radius:6px;font-size:22px;
+  letter-spacing:6px;text-align:center;text-transform:uppercase;
+  width:200px;margin:10px;font-family:Georgia;
+}
+input.code-inp:focus{outline:none;border-color:#d4a44c;}
+
+/* AUTH TABS */
+.tab-row{display:flex;width:100%;margin-bottom:12px;border:1px solid #5a3200;border-radius:6px;overflow:hidden;}
+.tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:13px;letter-spacing:1px;color:#7a5010;background:#150800;transition:all .2s;}
+.tab.active{background:#d4a44c;color:#1a0a00;font-weight:bold;}
+
+/* PROFILE CARD */
+.profile-card{
+  width:100%;background:#150800;border:1px solid #3a1800;border-radius:10px;
+  padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;
+}
+.avatar{width:52px;height:52px;border-radius:50%;background:#2d1200;border:2px solid #5a3200;
+  display:flex;align-items:center;justify-content:center;font-size:24px;}
+.profile-info{flex:1;}
+.profile-name{font-size:16px;font-weight:bold;color:#d4a44c;}
+.profile-elo{font-size:13px;color:#8a5820;margin-top:2px;}
+.stats-row{display:flex;gap:6px;margin-top:6px;}
+.stat{background:#1f0e00;border:1px solid #3a1800;border-radius:5px;padding:4px 10px;font-size:11px;color:#7a5010;text-align:center;}
+.stat b{display:block;font-size:14px;color:#d4a44c;}
+
+/* RANK BADGE */
+.rank-badge{
+  display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;letter-spacing:1px;
+}
+.rank-pemula{background:#3a2800;color:#8a6020;border:1px solid #5a3800;}
+.rank-kayu{background:#2d1a00;color:#9a7030;border:1px solid #6a4010;}
+.rank-besi{background:#1a2030;color:#7090b0;border:1px solid #304060;}
+.rank-perunggu{background:#2d1500;color:#cd7f32;border:1px solid #8b4513;}
+.rank-perak{background:#202030;color:#c0c0d0;border:1px solid #8080a0;}
+.rank-emas{background:#2d2200;color:#ffd700;border:1px solid #aa8800;}
+.rank-master{background:#200030;color:#cc44ff;border:1px solid #6600aa;}
+
+/* LEADERBOARD */
+.lb-row{
+  display:flex;align-items:center;gap:10px;width:100%;
+  background:#150800;border:1px solid #2a1000;border-radius:8px;
+  padding:10px 14px;margin:4px 0;
+}
+.lb-rank{width:28px;text-align:center;font-size:14px;color:#5a3800;}
+.lb-rank.top{color:#d4a44c;font-weight:bold;}
+.lb-name{flex:1;font-size:14px;color:#d4a44c;}
+.lb-elo{font-size:14px;font-weight:bold;color:#e8b860;}
+
+/* GAME LAYOUT */
+.player-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:3px 4px;}
+.cap-row{display:flex;flex-wrap:wrap;gap:1px;font-size:14px;min-height:18px;}
+.elo-tag{font-size:11px;color:#7a5010;margin-left:4px;}
+.status-bar{
+  background:#1f0e00;border:1px solid #5a3200;border-radius:8px;
+  padding:7px 14px;margin:5px 0;font-size:13px;letter-spacing:1px;
+  text-align:center;width:100%;transition:all .3s;
+}
+.status-bar.check{border-color:#ff5555;color:#ff9999;background:#3c0000;}
+.status-bar.win{border-color:#d4a44c;background:linear-gradient(90deg,#5a2000,#d4a44c33,#5a2000);color:#fff;font-size:14px;}
+.status-bar.disc{border-color:#888;color:#aaa;}
+.board-outer{border:4px solid #5a3200;border-radius:4px;box-shadow:0 0 50px #00000099,0 0 80px #d4a44c18;overflow:hidden;}
+.lbl-row{display:flex;background:#2d1800;height:18px;}
+.lbl-row .corner{width:20px;}
+.lbl-row .cl{width:52px;text-align:center;font-size:10px;color:#6a4020;line-height:18px;}
+.board-row{display:flex;}
+.rl{width:20px;background:#2d1800;display:flex;align-items:center;justify-content:center;font-size:10px;color:#6a4020;}
+.cell{width:52px;height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .1s;}
+.cell.light{background:#f0d9b5;}.cell.dark{background:#b58863;}
+.cell.sel{background:#f6f669!important;}
+.cell.ll{background:#cdd16f;}.cell.ld{background:#aaa23a;}
+.piece{font-size:36px;user-select:none;z-index:2;position:relative;}
+.piece.w{color:#fff;text-shadow:0 1px 4px #000,0 0 6px #0005;}
+.piece.b{color:#111;text-shadow:0 1px 2px #fff3;}
+.cell.sel .piece{filter:drop-shadow(0 0 6px #ffee00);}
+.dot{position:absolute;width:32%;height:32%;background:rgba(10,120,10,.42);border-radius:50%;z-index:1;pointer-events:none;}
+.cap-ring{position:absolute;width:100%;height:100%;border:4px solid rgba(10,120,10,.42);z-index:1;pointer-events:none;}
+.chat-wrap{width:100%;background:#180a00;border:1px solid #3a1a00;border-radius:8px;padding:8px;margin-top:5px;}
+.chat-log{height:65px;overflow-y:auto;font-size:12px;color:#8a5820;margin-bottom:5px;}
+.chat-log div{margin-bottom:2px;}
+.chat-row{display:flex;gap:6px;}
+.chat-row input{flex:1;background:#2d1200;border:1px solid #5a3200;color:#d4a44c;padding:6px 10px;border-radius:4px;font-size:12px;font-family:Georgia;}
+.chat-row input:focus{outline:none;border-color:#d4a44c;}
+.chat-row button{background:#5a3200;border:none;color:#d4a44c;padding:6px 12px;border-radius:4px;cursor:pointer;}
+.game-btns{display:flex;gap:6px;margin-top:8px;}
+.hint{color:#3a1800;font-size:11px;margin-top:6px;text-align:center;}
+.elo-change{font-weight:bold;margin-left:4px;}
+.elo-up{color:#66ff88;} .elo-down{color:#ff6666;} .elo-draw{color:#ffcc44;}
+</style>
+</head>
+<body>
+
+<!-- ① SETUP FIREBASE -->
+<div id="s-setup" class="screen active">
+  <h1>♟ Chess Online</h1>
+  <p class="sub">SETUP FIREBASE</p>
+  <div class="info-box">
+    <b>Langkah setup (5 menit):</b><br>
+    1. <b>console.firebase.google.com</b> → Add project<br>
+    2. <b>Build → Realtime Database</b> → Create → Test mode<br>
+    3. <b>Authentication → Sign-in method → Email/Password → Enable</b><br>
+    4. <b>Project Settings ⚙ → Your apps → Add app → Web</b><br>
+    5. Copy <code>firebaseConfig = { ... }</code> → paste di bawah
+  </div>
+  <textarea class="cfg" id="cfg-input" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "project.firebaseapp.com",
+  "databaseURL": "https://project-default-rtdb.firebaseio.com",
+  "projectId": "project-id",
+  "storageBucket": "project.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123:web:abc"
+}'></textarea>
+  <div class="err" id="cfg-err"></div>
+  <button class="btn solid" onclick="initFirebase()">Sambungkan →</button>
+</div>
+
+<!-- ② AUTH -->
+<div id="s-auth" class="screen">
+  <h1>♟ Chess Online</h1>
+  <p class="sub">LOGIN / DAFTAR</p>
+  <div class="tab-row">
+    <div class="tab active" id="tab-login" onclick="switchTab('login')">Login</div>
+    <div class="tab" id="tab-reg" onclick="switchTab('reg')">Daftar</div>
+  </div>
+  <div id="auth-login" style="width:100%">
+    <input class="inp" id="login-email" type="email" placeholder="Email"/>
+    <input class="inp" id="login-pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div class="err" id="login-err"></div>
+    <button class="btn solid" style="width:100%;margin-top:6px" onclick="doLogin()">Masuk →</button>
+  </div>
+  <div id="auth-reg" style="width:100%;display:none">
+    <input class="inp" id="reg-name" placeholder="Nama tampilan (username)"/>
+    <input class="inp" id="reg-email" type="email" placeholder="Email"/>
+    <input class="inp" id="reg-pass" type="password" placeholder="Password (min 6 karakter)" onkeydown="if(event.key==='Enter')doRegister()"/>
+    <div class="err" id="reg-err"></div>
+    <div class="suc" id="reg-suc"></div>
+    <button class="btn solid" style="width:100%;margin-top:6px" onclick="doRegister()">Daftar →</button>
+  </div>
+</div>
+
+<!-- ③ LOBBY -->
+<div id="s-lobby" class="screen">
+  <h1 style="font-size:22px">♟ Chess Online</h1>
+  <div class="profile-card" id="profile-card">
+    <div class="avatar">♟</div>
+    <div class="profile-info">
+      <div class="profile-name" id="prof-name">—</div>
+      <div class="profile-elo">
+        ELO: <b id="prof-elo">1200</b>
+        &nbsp;<span class="rank-badge" id="prof-rank">—</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><b id="prof-w">0</b>Menang</div>
+        <div class="stat"><b id="prof-l">0</b>Kalah</div>
+        <div class="stat"><b id="prof-d">0</b>Seri</div>
+        <div class="stat"><b id="prof-g">0</b>Main</div>
+      </div>
+    </div>
+  </div>
+  <button class="btn solid" style="width:100%;font-size:15px;padding:12px" onclick="createRoom()">🏠 Buat Room</button>
+  <button class="btn" style="width:100%;font-size:15px;padding:12px" onclick="goJoin()">🔗 Gabung Room</button>
+  <button class="btn" style="width:100%;font-size:13px" onclick="showLeaderboard()">🏆 Leaderboard</button>
+  <button class="btn danger sm" style="margin-top:8px" onclick="doLogout()">Logout</button>
+</div>
+
+<!-- ④ LEADERBOARD -->
+<div id="s-lb" class="screen">
+  <h1 style="font-size:22px">🏆 Leaderboard</h1>
+  <p class="sub">TOP PEMAIN</p>
+  <div id="lb-list" style="width:100%;margin:8px 0"></div>
+  <button class="btn" onclick="showScreen('s-lobby')" style="margin-top:8px">← Kembali</button>
+</div>
+
+<!-- ⑤ CREATE / WAITING -->
+<div id="s-waiting" class="screen">
+  <h1>♟ Chess</h1>
+  <p class="sub">BUAT ROOM</p>
+  <p style="color:#7a5010;font-size:13px;margin:8px 0">Kirim kode ini ke temanmu:</p>
+  <div class="room-code-box" id="room-code-display">------</div>
+  <button class="btn" onclick="copyCode(this)">📋 Salin Kode</button>
+  <div class="spinner"></div>
+  <p style="color:#5a3800;font-size:12px;letter-spacing:1px">Menunggu teman bergabung...</p>
+  <button class="btn" style="margin-top:14px" onclick="cancelRoom()">✕ Batal</button>
+</div>
+
+<!-- ⑥ JOIN -->
+<div id="s-join" class="screen">
+  <h1>♟ Chess</h1>
+  <p class="sub">GABUNG ROOM</p>
+  <p style="color:#7a5010;font-size:13px;margin:10px 0">Masukkan kode dari temanmu:</p>
+  <input class="code-inp" id="join-inp" placeholder="XXXXXX" maxlength="6"
+    oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinRoom()"/>
+  <div class="err" id="join-err"></div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn" onclick="showScreen('s-lobby')">← Kembali</button>
+    <button class="btn solid" onclick="joinRoom()">Gabung →</button>
+  </div>
+</div>
+
+<!-- ⑦ GAME -->
+<div id="s-game" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:2px">
+    <h1 style="font-size:18px">♟ Chess</h1>
+    <span style="font-size:11px;color:#5a3200;letter-spacing:1px" id="room-tag"></span>
+  </div>
+  <!-- Opponent -->
+  <div class="player-row">
+    <div>
+      <span id="opp-label" style="color:#8a5820;font-size:12px">⬛ Lawan</span>
+      <span class="elo-tag">ELO: <b id="opp-elo-disp">—</b></span>
+      <span class="rank-badge" id="opp-rank-badge" style="margin-left:4px">—</span>
+    </div>
+    <div class="cap-row" id="cap-opp"></div>
+  </div>
+  <div class="status-bar" id="status-bar">Memuat...</div>
+  <div class="board-outer" id="board-outer"></div>
+  <!-- Me -->
+  <div class="player-row">
+    <div>
+      <span id="my-label" style="color:#8a5820;font-size:12px">⬜ Kamu</span>
+      <span class="elo-tag">ELO: <b id="my-elo-disp">—</b></span>
+      <span class="rank-badge" id="my-rank-badge" style="margin-left:4px">—</span>
+    </div>
+    <div class="cap-row" id="cap-me"></div>
+  </div>
+  <!-- ELO change display -->
+  <div id="elo-result" style="text-align:center;font-size:13px;min-height:18px;margin:2px 0"></div>
+  <!-- Chat -->
+  <div class="chat-wrap">
+    <div class="chat-log" id="chat-log"></div>
+    <div class="chat-row">
+      <input id="chat-inp" placeholder="Ketik pesan..." maxlength="80" onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button onclick="sendChat()">➤</button>
+    </div>
+  </div>
+  <div class="game-btns">
+    <button class="btn" onclick="offerRematch()">🔄 Main Lagi</button>
+    <button class="btn" onclick="leaveGame()">🚪 Keluar</button>
+  </div>
+  <p class="hint">Klik bidak → titik hijau = bisa jalan • Pawn auto-Queen</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════ FIREBASE INIT ════════════════════
+let db=null, auth=null;
+
+function initFirebase(){
+  const cfg = {
+    "apiKey": "AIzaSyDmdUPtLXkSeXA5jRX-10Cq23FbEclbHdI",
+    "authDomain": "mychess-67.firebaseapp.com",
+    "databaseURL": "https://mychess-67-default-rtdb.firebaseio.com",
+    "projectId": "mychess-67",
+    "storageBucket": "mychess-67.firebasestorage.app",
+    "messagingSenderId": "521241045019",
+    "appId": "1:521241045019:web:b15a39e0115c7569f630be",
+    "measurementId": "G-R8EYC47GPK"
+  };
+  
+  try {
+    if(typeof firebase === 'undefined') {
+      alert('Pustaka Firebase gagal dimuat. Pastikan kamu terhubung ke internet!');
+      return;
+    }
+    if(firebase.apps.length > 0) firebase.apps.forEach(a => a.delete());
+    
+    const app = firebase.initializeApp(cfg);
+    db = firebase.database(app); 
+    auth = firebase.auth(app);
+    
+    auth.onAuthStateChanged(user => {
+      if(user){ 
+        currentUser = user; 
+        loadProfile().then(() => showScreen('s-lobby')); 
+      } else { 
+        showScreen('s-auth'); 
+      }
+    });
+  } catch(e) {
+    alert('Koneksi gagal: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════ ELO & RANK ════════════════════
+const RANKS=[
+  {min:2000,label:'Master 👑',cls:'rank-master'},
+  {min:1800,label:'Emas 🥇',cls:'rank-emas'},
+  {min:1600,label:'Perak 🥈',cls:'rank-perak'},
+  {min:1400,label:'Perunggu 🥉',cls:'rank-perunggu'},
+  {min:1200,label:'Besi ⚔️',cls:'rank-besi'},
+  {min:1000,label:'Kayu 🪵',cls:'rank-kayu'},
+  {min:0,label:'Pemula 🥚',cls:'rank-pemula'},
+];
+function getRank(elo){return RANKS.find(r=>elo>=r.min)||RANKS[RANKS.length-1];}
+
+function calcElo(myElo,oppElo,score){
+  const K=32,E=1/(1+Math.pow(10,(oppElo-myElo)/400));
+  return Math.round(myElo+K*(score-E));
+}
+
+// ═══════════════════════════════════════ AUTH ════════════════════
+let currentUser=null, myProfile=null;
+
+function switchTab(t){
+  document.getElementById('tab-login').className='tab'+(t==='login'?' active':'');
+  document.getElementById('tab-reg').className='tab'+(t==='reg'?' active':'');
+  document.getElementById('auth-login').style.display=t==='login'?'block':'none';
+  document.getElementById('auth-reg').style.display=t==='reg'?'block':'none';
+}
+
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-err'); err.textContent='';
+  if(!email||!pass){err.textContent='Isi email dan password!';return;}
+  auth.signInWithEmailAndPassword(email,pass)
+    .catch(e=>err.textContent=translateAuthErr(e.code));
+}
+
+function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  const err=document.getElementById('reg-err'), suc=document.getElementById('reg-suc');
+  err.textContent=''; suc.textContent='';
+  if(!name){err.textContent='Masukkan nama tampilan!';return;}
+  if(!email||!pass){err.textContent='Isi email dan password!';return;}
+  auth.createUserWithEmailAndPassword(email,pass).then(cred=>{
+    const uid=cred.user.uid;
+    return db.ref('users/'+uid).set({displayName:name,elo:1200,wins:0,losses:0,draws:0,gamesPlayed:0});
+  }).then(()=>{
+    suc.textContent='Akun berhasil dibuat! Selamat datang 🎉';
+  }).catch(e=>err.textContent=translateAuthErr(e.code));
+}
+
+function doLogout(){
+  auth.signOut().then(()=>{currentUser=null;myProfile=null;showScreen('s-auth');});
+}
+
+function translateAuthErr(code){
+  const map={'auth/user-not-found':'Email tidak ditemukan.','auth/wrong-password':'Password salah.',
+    'auth/email-already-in-use':'Email sudah dipakai.','auth/weak-password':'Password minimal 6 karakter.',
+    'auth/invalid-email':'Format email salah.'};
+  return map[code]||('Error: '+code);
+}
+
+async function loadProfile(){
+  if(!currentUser)return;
+  const snap=await db.ref('users/'+currentUser.uid).once('value');
+  myProfile=snap.val()||{displayName:'Player',elo:1200,wins:0,losses:0,draws:0,gamesPlayed:0};
+  renderProfile();
+}
+
+function renderProfile(){
+  if(!myProfile)return;
+  const rank=getRank(myProfile.elo||1200);
+  document.getElementById('prof-name').textContent=myProfile.displayName||'Player';
+  document.getElementById('prof-elo').textContent=myProfile.elo||1200;
+  const rb=document.getElementById('prof-rank');
+  rb.textContent=rank.label; rb.className='rank-badge '+rank.cls;
+  document.getElementById('prof-w').textContent=myProfile.wins||0;
+  document.getElementById('prof-l').textContent=myProfile.losses||0;
+  document.getElementById('prof-d').textContent=myProfile.draws||0;
+  document.getElementById('prof-g').textContent=myProfile.gamesPlayed||0;
+}
+
+// ═══════════════════════════════════════ LEADERBOARD ════════════════════
+async function showLeaderboard(){
+  showScreen('s-lb');
+  const el=document.getElementById('lb-list');
+  el.innerHTML='<div style="text-align:center;color:#5a3800;padding:16px">Memuat...</div>';
+  const snap=await db.ref('users').orderByChild('elo').limitToLast(20).once('value');
+  const list=[];
+  snap.forEach(c=>list.unshift({uid:c.key,...c.val()}));
+  el.innerHTML='';
+  list.forEach((u,i)=>{
+    const rank=getRank(u.elo||1200);
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const isMe=currentUser&&u.uid===currentUser.uid;
+    const row=document.createElement('div');
+    row.className='lb-row';
+    row.style.border=isMe?'1px solid #d4a44c88':'1px solid #2a1000';
+    row.innerHTML=`
+      <div class="lb-rank ${i<3?'top':''}">${medal||('#'+(i+1))}</div>
+      <div class="lb-name">${u.displayName||'Player'}${isMe?' <span style="color:#5a3800;font-size:11px">(kamu)</span>':''}</div>
+      <span class="rank-badge ${rank.cls}">${rank.label}</span>
+      <div class="lb-elo">${u.elo||1200}</div>
+    `;
+    el.appendChild(row);
+  });
+  if(!list.length) el.innerHTML='<div style="text-align:center;color:#5a3800;padding:16px">Belum ada pemain</div>';
+}
+
+// ═══════════════════════════════════════ CHESS LOGIC ════════════════════
+const SYM={white:{K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'},black:{K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'}};
+let board=[],selCell=null,validMoves=[],turn='white';
+let capturedByWhite=[],capturedByBlack=[];
+let lastMove=null,gameOver=false;
+
+function initBoard(){
+  board=Array(8).fill(null).map(()=>Array(8).fill(null));
+  const back=['R','N','B','Q','K','B','N','R'];
+  back.forEach((p,c)=>board[0][c]={piece:p,color:'black'});
+  for(let c=0;c<8;c++)board[1][c]={piece:'P',color:'black'};
+  for(let c=0;c<8;c++)board[6][c]={piece:'P',color:'white'};
+  back.forEach((p,c)=>board[7][c]={piece:p,color:'white'});
+  selCell=null;validMoves=[];turn='white';lastMove=null;gameOver=false;
+  capturedByWhite=[];capturedByBlack=[];
+}
+
+function rawMoves(b,r,c){
+  const cell=b[r][c];if(!cell)return[];
+  const{piece,color}=cell,en=color==='white'?'black':'white',mv=[];
+  const inB=(a,d)=>a>=0&&a<8&&d>=0&&d<8;
+  const isEn=(a,d)=>inB(a,d)&&b[a][d]?.color===en;
+  const can=(a,d)=>inB(a,d)&&(!b[a][d]||b[a][d].color===en);
+  const slide=(dr,dc)=>{let a=r+dr,d=c+dc;while(inB(a,d)){if(b[a][d]){if(b[a][d].color===en)mv.push([a,d]);break;}mv.push([a,d]);a+=dr;d+=dc;}};
+  if(piece==='P'){
+    const d=color==='white'?-1:1,st=color==='white'?6:1;
+    if(inB(r+d,c)&&!b[r+d][c]){mv.push([r+d,c]);if(r===st&&!b[r+2*d][c])mv.push([r+2*d,c]);}
+    if(isEn(r+d,c-1))mv.push([r+d,c-1]);
+    if(isEn(r+d,c+1))mv.push([r+d,c+1]);
+  }
+  if(piece==='R'||piece==='Q')[[0,1],[0,-1],[1,0],[-1,0]].forEach(([a,d])=>slide(a,d));
+  if(piece==='B'||piece==='Q')[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,d])=>slide(a,d));
+  if(piece==='N')[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([a,d])=>{if(can(r+a,c+d))mv.push([r+a,c+d]);});
+  if(piece==='K')[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([a,d])=>{if(can(r+a,c+d))mv.push([r+a,c+d]);});
+  return mv;
+}
+function findKing(b,color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]?.piece==='K'&&b[r][c]?.color===color)return[r,c];}
+function isCheck(b,color){
+  const k=findKing(b,color);if(!k)return false;const[kr,kc]=k;
+  const en=color==='white'?'black':'white';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]?.color===en)if(rawMoves(b,r,c).some(([a,d])=>a===kr&&d===kc))return true;
+  return false;
+}
+function legalMoves(b,r,c,t){
+  const cell=b[r][c];if(!cell||cell.color!==t)return[];
+  return rawMoves(b,r,c).filter(([tr,tc])=>{
+    const nb=b.map(row=>[...row]);nb[tr][tc]=nb[r][c];nb[r][c]=null;return!isCheck(nb,t);
+  });
+}
+function anyLegal(b,color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]?.color===color&&legalMoves(b,r,c,color).length>0)return true;return false;}
+
+function doMove(fr,fc,tr,tc){
+  const nb=board.map(r=>[...r]);
+  const cap=nb[tr][tc];
+  if(cap)(cap.color==='black'?capturedByWhite:capturedByBlack).push(cap.piece);
+  nb[tr][tc]=nb[fr][fc];nb[fr][fc]=null;
+  if(nb[tr][tc].piece==='P'&&(tr===0||tr===7))nb[tr][tc]={piece:'Q',color:nb[tr][tc].color};
+  board=nb;lastMove=[[fr,fc],[tr,tc]];
+  const next=turn==='white'?'black':'white';turn=next;selCell=null;validMoves=[];
+  if(isCheck(board,next)){if(!anyLegal(board,next)){gameOver=true;return'checkmate';}return'check';}
+  if(!anyLegal(board,next)){gameOver=true;return'stalemate';}
+  return'ok';
+}
+
+// ═══════════════════════════════════════ ROOM MANAGEMENT ════════════════════
+let myColor=null,myRoomCode='',flipped=false;
+let opponentUid=null,opponentElo=1200,myElo=1200;
+let gameStartTime=0;
+
+async function createRoom(){
+  showScreen('s-waiting');
+  const code=(Math.random().toString(36).substring(2,8)).toUpperCase();
+  myRoomCode=code;
+  document.getElementById('room-code-display').textContent=code;
+  myColor='white';flipped=false;
+  await loadProfile();
+  myElo=myProfile?.elo||1200;
+  db.ref('chess/'+code).set({
+    status:'waiting',hostUid:currentUser.uid,
+    hostName:myProfile?.displayName||'Player',hostElo:myElo,
+    createdAt:Date.now()
+  });
+  db.ref('chess/'+code).onDisconnect().remove();
+  db.ref('chess/'+code+'/status').on('value',snap=>{
+    if(snap.val()==='playing'){
+      db.ref('chess/'+code+'/status').off();
+      db.ref('chess/'+code).once('value').then(s=>{
+        const d=s.val();
+        opponentUid=d.guestUid; opponentElo=d.guestElo||1200;
+        startGame();
+      });
+    }
+  });
+}
+
+function goJoin(){
+  showScreen('s-join');
+  document.getElementById('join-inp').value='';
+  document.getElementById('join-err').textContent='';
+}
+
+async function joinRoom(){
+  const code=document.getElementById('join-inp').value.trim().toUpperCase();
+  const errEl=document.getElementById('join-err'); errEl.textContent='';
+  if(code.length<4){errEl.textContent='Kode minimal 4 karakter';return;}
+  errEl.textContent='Mencari room...';
+  await loadProfile();
+  myElo=myProfile?.elo||1200;
+  const snap=await db.ref('chess/'+code).once('value');
+  const data=snap.val();
+  if(!data){errEl.textContent='Room tidak ditemukan!';return;}
+  if(data.status==='playing'){errEl.textContent='Room sudah penuh!';return;}
+  myRoomCode=code; myColor='black'; flipped=true;
+  opponentUid=data.hostUid; opponentElo=data.hostElo||1200;
+  initBoard();
+  db.ref('chess/'+code).update({
+    status:'playing',guestUid:currentUser.uid,
+    guestName:myProfile?.displayName||'Player',guestElo:myElo,
+    board:JSON.stringify(board),turn:'white',
+    capturedByWhite:'[]',capturedByBlack:'[]',
+    lastMove:null,gameStatus:'',lastMoveBy:null,eloUpdated:false
+  });
+  startGame();
+}
+
+function cancelRoom(){
+  if(myRoomCode)db.ref('chess/'+myRoomCode).remove();
+  myRoomCode=''; showScreen('s-lobby');
+}
+
+async function leaveGame(){
+  if(myRoomCode){
+    db.ref('chess/'+myRoomCode).off();
+    db.ref('chess/'+myRoomCode+'/chat').off();
+    db.ref('chess/'+myRoomCode+'/status').set('finished');
+  }
+  myRoomCode='';opponentUid=null;
+  await loadProfile();
+  showScreen('s-lobby');
+}
+
+function offerRematch(){
+  db.ref('chess/'+myRoomCode+'/rematch').set(myColor);
+  addMsg('Sistem','Mengajak main lagi...','#888');
+}
+
+// ═══════════════════════════════════════ ELO UPDATE ════════════════════
+async function tryUpdateElo(result){
+  // result for ME: 'win','loss','draw'
+  if(!currentUser||!opponentUid)return;
+  // Prevent double update using transaction
+  const flagRef=db.ref('chess/'+myRoomCode+'/eloUpdated');
+  const {committed}=await flagRef.transaction(cur=>{if(cur)return;return true;});
+  if(!committed)return;
+  const myScore=result==='win'?1:result==='draw'?0.5:0;
+  const oppScore=1-myScore;
+  const [mySnap,oppSnap]=await Promise.all([
+    db.ref('users/'+currentUser.uid).once('value'),
+    db.ref('users/'+opponentUid).once('value')
+  ]);
+  const myCur=mySnap.val()||{elo:1200,wins:0,losses:0,draws:0,gamesPlayed:0};
+  const oppCur=oppSnap.val()||{elo:1200,wins:0,losses:0,draws:0,gamesPlayed:0};
+  const newMyElo=calcElo(myCur.elo,oppCur.elo,myScore);
+  const newOppElo=calcElo(oppCur.elo,myCur.elo,oppScore);
+  const myUpd={elo:newMyElo,gamesPlayed:(myCur.gamesPlayed||0)+1};
+  if(result==='win')myUpd.wins=(myCur.wins||0)+1;
+  else if(result==='loss')myUpd.losses=(myCur.losses||0)+1;
+  else myUpd.draws=(myCur.draws||0)+1;
+  const oppUpd={elo:newOppElo,gamesPlayed:(oppCur.gamesPlayed||0)+1};
+  if(result==='win')oppUpd.losses=(oppCur.losses||0)+1;
+  else if(result==='loss')oppUpd.wins=(oppCur.wins||0)+1;
+  else oppUpd.draws=(oppCur.draws||0)+1;
+  await Promise.all([
+    db.ref('users/'+currentUser.uid).update(myUpd),
+    db.ref('users/'+opponentUid).update(oppUpd)
+  ]);
+  const diff=newMyElo-myCur.elo;
+  const sign=diff>0?'+':'';
+  const cls=diff>0?'elo-up':diff<0?'elo-down':'elo-draw';
+  document.getElementById('elo-result').innerHTML=
+    `ELO: ${myCur.elo} → <b>${newMyElo}</b> <span class="elo-change ${cls}">(${sign}${diff})</span>`;
+  myProfile={...myCur,...myUpd};
+}
+
+// ═══════════════════════════════════════ GAME ════════════════════
+function startGame(){
+  initBoard();
+  gameStartTime=Date.now();
+  document.getElementById('room-tag').textContent='Room: '+myRoomCode;
+  document.getElementById('elo-result').textContent='';
+  const isW=myColor==='white';
+  document.getElementById('my-label').innerHTML=(isW?'⬜':'⬛')+' <b>'+(myProfile?.displayName||'Kamu')+'</b>';
+  document.getElementById('chat-log').innerHTML='';
+  addMsg('Sistem','Game dimulai! '+(isW?'Kamu (Putih) jalan duluan.':'Lawan (Putih) jalan duluan.'),'#888');
+  // Show ELO displays
+  updateEloDisplay();
+  showScreen('s-game');
+  renderAll('ok');
+  // Listen game state
+  db.ref('chess/'+myRoomCode).on('value',async snap=>{
+    const data=snap.val();if(!data)return;
+    if(data.status==='finished'){
+      setStatusBar('⚠ Lawan keluar dari game','disc');return;
+    }
+    // Opponent's name
+    const oppName=isW?(data.guestName||'Lawan'):(data.hostName||'Lawan');
+    const oppEloVal=isW?(data.guestElo||1200):(data.hostElo||1200);
+    document.getElementById('opp-label').innerHTML=(isW?'⬛':'⬜')+' <b>'+oppName+'</b>';
+    document.getElementById('opp-elo-disp').textContent=oppEloVal;
+    const oppRank=getRank(oppEloVal);
+    const orb=document.getElementById('opp-rank-badge');
+    orb.textContent=oppRank.label; orb.className='rank-badge '+oppRank.cls;
+    // Rematch
+    if(data.rematch&&data.rematch!==myColor){
+      if(confirm('Lawan mengajak main lagi. Terima?')){
+        initBoard();
+        db.ref('chess/'+myRoomCode).update({
+          board:JSON.stringify(board),turn:'white',
+          capturedByWhite:'[]',capturedByBlack:'[]',
+          lastMove:null,gameStatus:'',lastMoveBy:null,rematch:null,eloUpdated:false
+        });
+        document.getElementById('elo-result').textContent='';
+        renderAll('ok'); addMsg('Sistem','Game baru dimulai!','#888');
+      } else db.ref('chess/'+myRoomCode+'/rematch').set(null);
+      return;
+    }
+    // Opponent move sync
+    if(data.lastMoveBy&&data.lastMoveBy!==myColor&&data.board){
+      board=JSON.parse(data.board); turn=data.turn||'white';
+      capturedByWhite=JSON.parse(data.capturedByWhite||'[]');
+      capturedByBlack=JSON.parse(data.capturedByBlack||'[]');
+      const lm=data.lastMove;
+      lastMove=lm?[[lm.fr,lm.fc],[lm.tr,lm.tc]]:null;
+      gameOver=data.gameStatus==='checkmate'||data.gameStatus==='stalemate';
+      renderAll(data.gameStatus||'ok');
+      // Handle ELO if I lost/drew from opponent's move
+      if(data.gameStatus==='checkmate'){
+        // opponent made the last move = I lost
+        await tryUpdateElo('loss');
+      } else if(data.gameStatus==='stalemate'){
+        await tryUpdateElo('draw');
+      }
+    }
+  });
+  // Listen chat
+  db.ref('chess/'+myRoomCode+'/chat')
+    .orderByChild('time').startAt(gameStartTime-500)
+    .on('child_added',snap=>{
+      const d=snap.val();
+      if(d&&d.from!==myColor)addMsg('Lawan',d.msg,'#7aaa7a');
+    });
+}
+
+async function makeMove(fr,fc,tr,tc){
+  const result=doMove(fr,fc,tr,tc);
+  db.ref('chess/'+myRoomCode).update({
+    board:JSON.stringify(board),turn,
+    capturedByWhite:JSON.stringify(capturedByWhite),
+    capturedByBlack:JSON.stringify(capturedByBlack),
+    lastMove:{fr,fc,tr,tc},gameStatus:result,lastMoveBy:myColor
+  });
+  renderAll(result);
+  if(result==='checkmate') await tryUpdateElo('win');
+  else if(result==='stalemate') await tryUpdateElo('draw');
+}
+
+function updateEloDisplay(){
+  const myE=myProfile?.elo||1200;
+  const myRank=getRank(myE);
+  document.getElementById('my-elo-disp').textContent=myE;
+  const mrb=document.getElementById('my-rank-badge');
+  mrb.textContent=myRank.label; mrb.className='rank-badge '+myRank.cls;
+}
+
+// ═══════════════════════════════════════ RENDER ════════════════════
+function renderAll(result){renderBoard();updateStatus(result);updateCaptured();}
+
+function renderBoard(){
+  const outer=document.getElementById('board-outer'); outer.innerHTML='';
+  const cols=flipped?'hgfedcba':'abcdefgh';
+  const topRow=document.createElement('div'); topRow.className='lbl-row';
+  topRow.appendChild(Object.assign(document.createElement('div'),{className:'corner'}));
+  cols.split('').forEach(l=>{const d=document.createElement('div');d.className='cl';d.textContent=l;topRow.appendChild(d);});
+  outer.appendChild(topRow);
+  for(let ri=0;ri<8;ri++){
+    const r=flipped?7-ri:ri;
+    const rowEl=document.createElement('div'); rowEl.className='board-row';
+    const rl=document.createElement('div'); rl.className='rl'; rl.textContent=flipped?r+1:8-r; rowEl.appendChild(rl);
+    for(let ci=0;ci<8;ci++){
+      const c=flipped?7-ci:ci;
+      const light=(r+c)%2===0;
+      const isSel=selCell&&selCell[0]===r&&selCell[1]===c;
+      const isLast=lastMove&&((lastMove[0][0]===r&&lastMove[0][1]===c)||(lastMove[1][0]===r&&lastMove[1][1]===c));
+      const isVld=validMoves.some(([a,b])=>a===r&&b===c);
+      const cell=document.createElement('div');
+      cell.className='cell '+(isSel?'sel':isLast?(light?'ll':'ld'):(light?'light':'dark'));
+      if(!gameOver) cell.onclick=()=>handleClick(r,c);
+      if(isVld){const m=document.createElement('div');m.className=board[r][c]?'cap-ring':'dot';cell.appendChild(m);}
+      if(board[r][c]){
+        const sp=document.createElement('span');
+        sp.className='piece '+(board[r][c].color==='white'?'w':'b');
+        sp.textContent=SYM[board[r][c].color][board[r][c].piece];
+        cell.appendChild(sp);
+      }
+      rowEl.appendChild(cell);
+    }
+    outer.appendChild(rowEl);
+  }
+}
+
+function handleClick(r,c){
+  if(gameOver||turn!==myColor)return;
+  if(selCell){
+    const isVld=validMoves.some(([a,b])=>a===r&&b===c);
+    if(isVld)makeMove(selCell[0],selCell[1],r,c);
+    else if(board[r][c]?.color===myColor){selCell=[r,c];validMoves=legalMoves(board,r,c,turn);renderBoard();}
+    else{selCell=null;validMoves=[];renderBoard();}
+  } else {
+    if(board[r][c]?.color===myColor){selCell=[r,c];validMoves=legalMoves(board,r,c,turn);renderBoard();}
+  }
+}
+
+function updateStatus(result){
+  const myTurn=turn===myColor;
+  if(result==='checkmate'){
+    const iWin=(turn==='white'&&myColor==='black')||(turn==='black'&&myColor==='white');
+    setStatusBar(iWin?'🏆 Kamu Menang! Checkmate!':'😢 Lawan Menang! Checkmate!','win');
+  } else if(result==='stalemate'){
+    setStatusBar('🤝 Seri! Stalemate!','win');
+  } else if(result==='check'){
+    setStatusBar(myTurn?'⚠ Kamu kena Check! Harus jalan':'⚠ Lawan kena Check!','check');
+  } else {
+    setStatusBar(myTurn?'🟢 Giliranmu':'⏳ Menunggu lawan...','');
+  }
+}
+function setStatusBar(msg,cls){
+  const el=document.getElementById('status-bar');
+  el.textContent=msg; el.className='status-bar'+(cls?' '+cls:'');
+}
+
+function updateCaptured(){
+  const isW=myColor==='white';
+  const myTook=isW?capturedByWhite:capturedByBlack;
+  const oppTook=isW?capturedByBlack:capturedByWhite;
+  document.getElementById('cap-me').textContent=myTook.map(p=>SYM[isW?'black':'white'][p]).join(' ');
+  document.getElementById('cap-opp').textContent=oppTook.map(p=>SYM[isW?'white':'black'][p]).join(' ');
+}
+
+// ═══════════════════════════════════════ CHAT ════════════════════
+function sendChat(){
+  const inp=document.getElementById('chat-inp');
+  const msg=inp.value.trim();if(!msg)return;
+  addMsg('Kamu',msg,'#d4a44c');
+  db.ref('chess/'+myRoomCode+'/chat').push({from:myColor,msg,time:Date.now()});
+  inp.value='';
+}
+function addMsg(from,msg,color){
+  const log=document.getElementById('chat-log');
+  const d=document.createElement('div');
+  d.innerHTML=`<span style="color:${color};font-weight:bold">${from}:</span> <span style="color:#a07030">${msg}</span>`;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+
+// ═══════════════════════════════════════ UTIL ════════════════════
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function copyCode(btn){navigator.clipboard.writeText(myRoomCode).then(()=>{btn.textContent='✅ Tersalin!';setTimeout(()=>btn.textContent='📋 Salin Kode',2000);});}
+</script>
+</body>
+</html>
