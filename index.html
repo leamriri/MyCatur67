@@ -146,47 +146,25 @@ input.code-inp:focus{outline:none;border-color:#d4a44c;}
 .elo-up{color:#66ff88;} .elo-down{color:#ff6666;} .elo-draw{color:#ffcc44;}
 </style>
 </head>
-<body>
+<body class="v-align">
 
-<!-- ① SETUP FIREBASE -->
-<div id="s-setup" class="screen active">
-  <h1>♟ Chess Online</h1>
-  <p class="sub">SETUP FIREBASE</p>
-  <div class="info-box">
-    <b>Langkah setup (5 menit):</b><br>
-    1. <b>console.firebase.google.com</b> → Add project<br>
-    2. <b>Build → Realtime Database</b> → Create → Test mode<br>
-    3. <b>Authentication → Sign-in method → Email/Password → Enable</b><br>
-    4. <b>Project Settings ⚙ → Your apps → Add app → Web</b><br>
-    5. Copy <code>firebaseConfig = { ... }</code> → paste di bawah
-  </div>
-  <textarea class="cfg" id="cfg-input" placeholder='{
-  "apiKey": "AIza...",
-  "authDomain": "project.firebaseapp.com",
-  "databaseURL": "https://project-default-rtdb.firebaseio.com",
-  "projectId": "project-id",
-  "storageBucket": "project.appspot.com",
-  "messagingSenderId": "123456",
-  "appId": "1:123:web:abc"
-}'></textarea>
-  <div class="err" id="cfg-err"></div>
-  <button class="btn solid" onclick="initFirebase()">Sambungkan →</button>
-</div>
+  <div id="s-setup" class="screen"></div>
 
-<!-- ② AUTH -->
-<div id="s-auth" class="screen">
-  <h1>♟ Chess Online</h1>
-  <p class="sub">LOGIN / DAFTAR</p>
-  <div class="tab-row">
-    <div class="tab active" id="tab-login" onclick="switchTab('login')">Login</div>
-    <div class="tab" id="tab-reg" onclick="switchTab('reg')">Daftar</div>
-  </div>
-  <div id="auth-login" style="width:100%">
-    <input class="inp" id="login-email" type="email" placeholder="Email"/>
-    <input class="inp" id="login-pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/>
-    <div class="err" id="login-err"></div>
-    <button class="btn solid" style="width:100%;margin-top:6px" onclick="doLogin()">Masuk →</button>
-  </div>
+  <div id="s-auth" class="screen active">
+    <h1>♟ Chess Online</h1>
+    <p class="sub">LOGIN / DAFTAR</p>
+    
+    <div class="tab-row">
+      <div class="tab active" id="tab-login" onclick="switchTab('login')">Login</div>
+      <div class="tab" id="tab-reg" onclick="switchTab('reg')">Daftar</div>
+    </div>
+    
+    <div id="auth-login" style="width:100%">
+      <input class="inp" id="login-email" type="email" placeholder="Email">
+      <input class="inp" id="login-pass" type="password" placeholder="Password">
+      <div class="err" id="login-err"></div>
+      <button class="btn solid" style="width:100%; margin-top:6px" onclick="doLogin()">Masuk →</button>
+    </div>
   <div id="auth-reg" style="width:100%;display:none">
     <input class="inp" id="reg-name" placeholder="Nama tampilan (username)"/>
     <input class="inp" id="reg-email" type="email" placeholder="Email"/>
@@ -316,12 +294,7 @@ function initFirebase(){
   };
   
   try {
-    if(typeof firebase === 'undefined') {
-      alert('Pustaka Firebase gagal dimuat. Pastikan kamu terhubung ke internet!');
-      return;
-    }
     if(firebase.apps.length > 0) firebase.apps.forEach(a => a.delete());
-    
     const app = firebase.initializeApp(cfg);
     db = firebase.database(app); 
     auth = firebase.auth(app);
@@ -335,9 +308,17 @@ function initFirebase(){
       }
     });
   } catch(e) {
-    alert('Koneksi gagal: ' + e.message);
+    console.error("Firebase Gagal: ", e);
+    showScreen('s-auth');
   }
 }
+
+// Menjalankan fungsi di atas secara otomatis saat web pertama kali d...
+window.addEventListener('DOMContentLoaded', () => {
+  initFirebase();
+});
+
+// ============================================ ELO & RANK ============================================
 
 // ═══════════════════════════════════════ ELO & RANK ════════════════════
 const RANKS=[
