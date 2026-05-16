@@ -312,7 +312,55 @@ function initFirebase(){
     showScreen('s-auth');
   }
 }
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errDiv = document.getElementById('login-err');
+  
+  if(!email || !pass) {
+    errDiv.innerText = "Email dan password wajib diisi!";
+    return;
+  }
+  
+  errDiv.innerText = "Sedang masuk...";
+  
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(() => {
+      errDiv.innerText = "";
+    })
+    .catch(error => {
+      errDiv.innerText = "Gagal login: " + error.message;
+    });
+}
 
+function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const errDiv = document.getElementById('reg-err');
+  
+  if(!username || !email || !pass) {
+    errDiv.innerText = "Semua kolom wajib diisi!";
+    return;
+  }
+  
+  errDiv.innerText = "Sedang mendaftar...";
+  
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(userCredential => {
+      const user = userCredential.user;
+      db.ref('users/' + user.uid).set({
+        username: username,
+        elo: 1500,
+        rank: "Pemula 🌟"
+      }).then(() => {
+        errDiv.innerText = "";
+      });
+    })
+    .catch(error => {
+      errDiv.innerText = "Gagal daftar: " + error.message;
+    });
+}
 // Menjalankan fungsi di atas secara otomatis saat web pertama kali d...
 window.addEventListener('DOMContentLoaded', () => {
   initFirebase();
